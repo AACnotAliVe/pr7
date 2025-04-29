@@ -25,23 +25,8 @@ char *strcasestr_local(const char *haystack, const char *needle) {
 }
 
 void print_line_with_context(const char *start, const char *file_start, const char *file_end,
-                             const char *filepath, int line_num, const char *match, size_t match_len) {
-    // Найти начало строки
-    const char *line_start = start;
-    while (line_start > file_start && *(line_start - 1) != '\n') {
-        line_start--;
-    }
-
-    // Найти конец строки
-    const char *line_end = start;
-    while (line_end < file_end && *line_end != '\n') {
-        line_end++;
-    }
-
-    // Печать: путь, номер строки, строка
-    printf("%s:%d: ", filepath, line_num);
-    fwrite(line_start, 1, line_end - line_start, stdout);
-    putchar('\n');
+                             const char *filepath, int line_num, const char *word) {
+    printf("%s:%d: %s\n", filepath, line_num, word);
 }
 
 void search_in_file_mmap(const char *filepath, const char *word, int ignore_case) {
@@ -70,31 +55,34 @@ void search_in_file_mmap(const char *filepath, const char *word, int ignore_case
         return;
     }
 
-    const char *needle = word;
-    size_t needle_len = strlen(needle);
     const char *ptr = data;
     const char *end = data + st.st_size;
     int line_number = 1;
+    int found_any = 0;
 
     while (ptr < end) {
         const char *match = NULL;
 
         if (ignore_case) {
-            match = strcasestr_local(ptr, needle);
+            match = strcasestr_local(ptr, word);
         } else {
-            match = strstr(ptr, needle);
+            match = strstr(ptr, word);
         }
 
         if (!match || match >= end)
             break;
 
-        // Подсчёт строки (от начала файла до найденного места)
         for (const char *c = ptr; c < match; c++) {
             if (*c == '\n') line_number++;
         }
 
-        print_line_with_context(match, data, end, filepath, line_number, needle, needle_len);
+        print_line_with_context(match, data, end, filepath, line_number, word);
+        found_any = 1;
         ptr = match + 1;
+    }
+
+    if (!found_any) {
+        printf("%s: слово \"%s\" не найдено\n", filepath, word);
     }
 
     munmap(data, st.st_size);
@@ -150,14 +138,14 @@ int main(int argc, char *argv[]) {
     }
 
     if (!word) {
-        fprintf(stderr, "Usage: %s <word> [-i] [directory]\n", argv[0]);
+        fprintf(stderr, "Использование: %s <word> [-i] [directory]\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     if (!dirpath) {
         const char *home = getenv("HOME");
         if (!home) {
-            fprintf(stderr, "Cannot determine home directory.\n");
+            fprintf(stderr, "Что-то не так с директорией хоум.\n");
             return EXIT_FAILURE;
         }
         snprintf(default_path, sizeof(default_path), "%s/files", home);
