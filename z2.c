@@ -32,6 +32,7 @@ void search_in_file(const char *filepath, const char *word, int ignore_case) {
 
     char line[MAX_LINE];
     int line_number = 0;
+    int found_any = 0;
 
     while (fgets(line, sizeof(line), file)) {
         line_number++;
@@ -41,8 +42,13 @@ void search_in_file(const char *filepath, const char *word, int ignore_case) {
             : strstr(line, word);
 
         if (found) {
-            printf("%s:%d: %s", filepath, line_number, line);
+            printf("%s:%d: %s\n", filepath, line_number, word);
+            found_any = 1;
         }
+    }
+
+    if (!found_any) {
+        printf("%s: слово \"%s\" не найдено\n", filepath, word);
     }
 
     fclose(file);
@@ -86,7 +92,6 @@ int main(int argc, char *argv[]) {
     static char default_path[MAX_PATH];
     int ignore_case = 0;
 
-    // Парсинг аргументов
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-i") == 0) {
             ignore_case = 1;
@@ -98,14 +103,14 @@ int main(int argc, char *argv[]) {
     }
 
     if (!word) {
-        fprintf(stderr, "Usage: %s <word> [-i] [directory]\n", argv[0]);
+        fprintf(stderr, "Использование: %s <word> [-i] [directory]\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     if (!dirpath) {
         const char *home = getenv("HOME");
         if (!home) {
-            fprintf(stderr, "Cannot determine home directory.\n");
+            fprintf(stderr, "Что-то не так с директорией home.\n");
             return EXIT_FAILURE;
         }
         snprintf(default_path, sizeof(default_path), "%s/files", home);
