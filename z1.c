@@ -18,12 +18,19 @@ void search_in_file(const char *filepath, const char *word) {
 
     char line[MAX_LINE];
     int line_number = 0;
+    int found_any = 0;
 
     while (fgets(line, sizeof(line), file)) {
         line_number++;
-        if (strstr(line, word)) {
-            printf("%s:%d: %s", filepath, line_number, line);
+        char *found = strstr(line, word);
+        if (found) {
+            printf("%s:%d: %s\n", filepath, line_number, word);
+            found_any = 1;
         }
+    }
+
+    if (!found_any) {
+        printf("%s: слово \"%s\" не найдено\n", filepath, word);
     }
 
     fclose(file);
@@ -52,7 +59,7 @@ void search_directory(const char *dirpath, const char *word) {
         }
 
         if (S_ISDIR(statbuf.st_mode)) {
-            search_directory(path, word); // рекурсивный обход
+            search_directory(path, word);
         } else if (S_ISREG(statbuf.st_mode)) {
             search_in_file(path, word);
         }
@@ -67,7 +74,7 @@ int main(int argc, char *argv[]) {
     const char *word = NULL;
 
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <word> [directory]\n", argv[0]);
+        fprintf(stderr, "Использование: %s <word> [directory]\n", argv[0]);
         return EXIT_FAILURE;
     }
 
